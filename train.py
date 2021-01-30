@@ -30,13 +30,13 @@ from warmup_cosine_decay_scheduler import WarmUpCosineDecayScheduler
 backend.set_image_data_format('channels_last')
 def model_fn(FLAGS, objective, optimizer, metrics):
 
-    model = EfficientNetB5(weights='imagenet',
+    model = EfficientNetB5(weights=None,
                            include_top=False,
                            input_shape=(FLAGS.input_size, FLAGS.input_size, 3),
                            classes=FLAGS.num_classes,
                            pooling=max)
 
-    # model.load_weights('/home/work/user-job-dir/src/efficientnet-b5_notop.h5')
+    model.load_weights('efficientnet-b5_notop.h5')
     for i, layer in enumerate(model.layers):
         if "batch_normalization" in layer.name:
             model.layers[i] = GroupNormalization(groups=32, axis=-1, epsilon=0.00001)
@@ -45,7 +45,7 @@ def model_fn(FLAGS, objective, optimizer, metrics):
     x = Dropout(0.4)(x)
     predictions = Dense(FLAGS.num_classes, activation='softmax')(x)  # activation="linear",activation='softmax'
     model = Model(input=model.input, output=predictions)
-    # model = multi_gpu_model(model, 2)  # 修改成自身需要的GPU数量，4代表用4个GPU同时加载程序
+    model = multi_gpu_model(model, 2)  # 修改成自身需要的GPU数量，4代表用4个GPU同时加载程序
     # model.load_weights('/home/work/user-job-dir/src/weights_004_0.9223.h5')
     model.compile(loss=objective, optimizer=optimizer, metrics=metrics)
     return model
